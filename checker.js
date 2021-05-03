@@ -4,13 +4,15 @@ const prompt = require('prompt');
 const fs = require('fs');
 const proxies = fs.readFileSync('proxies.txt', 'utf-8').replace(/\r/gi, '').split('\n');
 const usernames = [...new Set(require('fs').readFileSync('usernames.txt', 'utf-8').replace(/\r/g, '').split('\n'))];
-
+const ProxyAgent = require('proxy-agent');
 const cheerio = require('cheerio');
 const dateFormat = require('dateformat');
 
 process.on('uncaughtException', e => {});
 process.on('uncaughtRejection', e => {});
+process.on('UnhandledPromiseRejectionWarning', e => {});
 process.warn = () => {};
+console.warn = function() {};
 
 var available = 0;
 var unavailable = 0;
@@ -22,12 +24,30 @@ function write(content, file) {
     });
 }
 
-function check(username) {
+
+
+
+function getAgent(username, type , proxy){
+	try{
+	var agent = new ProxyAgent(`${type}://` + proxy);
+	return agent; 
+	}catch{
+		function intervalFunc() {
+			pcheck(username)
+		setInterval(intervalFunc, 10);
+		}
+	}
+}
+
+
+function check(username,type) {
     var proxy = proxies[Math.floor(Math.random() * proxies.length)];
+	let agent = getAgent(username, type , proxy);
+	
     request({
         method: "GET",
         url: `https://api.mojang.com/users/profiles/minecraft/${username}`,
-		proxy: `http://` + proxy, 
+		agent,
         'timeout': 2500,
         json: true,
     }, (err, res, body) => {
@@ -75,12 +95,14 @@ function getAvailabilityTime(data) {
 
 }
 
-function Availability(username) {
- var proxy = proxies[Math.floor(Math.random() * proxies.length)];
+function Availability(username,type) {
+
+var proxy = proxies[Math.floor(Math.random() * proxies.length)];
+let agent = getAgent(username, type , proxy);
   request({
       method: "GET",
       url: `https://namemc.com/name/${username}`,
-	  proxy: "http://" + proxy, 
+	  agent,
 	  'timeout': 2500,
 	  headers: { 
 		'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36',	  
@@ -104,7 +126,7 @@ function Availability(username) {
 		Availability(username);
 	}
 		checked = available + unavailable;
-		process.title = `[Minecraft Usernames Checker] - ${checked}/${usernames.length} Total Checked | ${available} Available | ${unavailable} Unavailable | ${rate} Rate Limited`;
+		process.title = `[313][Minecraft Usernames Checker] - ${checked}/${usernames.length} Total Checked | ${available} Available | ${unavailable} Unavailable | ${rate} Rate Limited`;
 	}) 
 }
 
@@ -114,21 +136,19 @@ function Availability(username) {
 //Program Startup
 function printAsciiLogo() {
   console.log(`
-  ${chalk.yellow('┌─────────────────────────────────────────────────────────────────────────────────────────────┐')}   
-  ${chalk.yellow('│')} ${chalk.red('███╗   ███╗ ██████╗ ██████╗██╗  ██╗███████╗ ██████╗██╗  ██╗███████╗██████╗ ')}${chalk.hex('66ff00')('     ██╗███████╗')} ${chalk.yellow('│')}
-  ${chalk.yellow('│')} ${chalk.red('████╗ ████║██╔════╝██╔════╝██║  ██║██╔════╝██╔════╝██║ ██╔╝██╔════╝██╔══██╗')}${chalk.hex('66ff00')('     ██║██╔════╝')} ${chalk.yellow('│')}
-  ${chalk.yellow('│')} ${chalk.red('██╔████╔██║██║     ██║     ███████║█████╗  ██║     █████╔╝ █████╗  ██████╔╝')}${chalk.hex('66ff00')('     ██║███████╗')} ${chalk.yellow('│')}
-  ${chalk.yellow('│')} ${chalk.red('██║╚██╔╝██║██║     ██║     ██╔══██║██╔══╝  ██║     ██╔═██╗ ██╔══╝  ██╔══██╗')}${chalk.hex('66ff00')('██   ██║╚════██║')} ${chalk.yellow('│')}
-  ${chalk.yellow('│')} ${chalk.red('██║ ╚═╝ ██║╚██████╗╚██████╗██║  ██║███████╗╚██████╗██║  ██╗███████╗██║  ██║')}${chalk.hex('66ff00')('╚█████╔╝███████║')} ${chalk.yellow('│')}
-  ${chalk.yellow('│')} ${chalk.red('╚═╝     ╚═╝ ╚═════╝ ╚═════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝')}${chalk.hex('66ff00')(' ╚════╝ ╚══════╝')} ${chalk.yellow('│')}
-  ${chalk.yellow('└─────────────────────────────────────────────────────────────────────────────────────────────┘')}                                                                                           
-                                                                                  
+				• ▌ ▄ ·.  ▄▄·  ▄▄·  ▄ .▄▄▄▄ . ▄▄· ▄ •▄ ▄▄▄ .▄▄▄    ${chalk.green(" ▐▄▄▄.▄▄ ·  ")}
+				·██ ▐███▪▐█ ▌▪▐█ ▌▪██▪▐█▀▄.▀·▐█ ▌▪█▌▄▌▪▀▄.▀·▀▄ █·  ${chalk.green("  ·██▐█ ▀.  ")}
+				▐█ ▌▐▌▐█·██ ▄▄██ ▄▄██▀▐█▐▀▀▪▄██ ▄▄▐▀▀▄·▐▀▀▪▄▐▀▀▄   ${chalk.green("▪▄ ██▄▀▀▀█▄ ")}
+				██ ██▌▐█▌▐███▌▐███▌██▌▐▀▐█▄▄▌▐███▌▐█.█▌▐█▄▄▌▐█•█▌  ${chalk.green("▐▌▐█▌▐█▄▪▐█ ")}
+				▀▀  █▪▀▀▀·▀▀▀ ·▀▀▀ ▀▀▀ · ▀▀▀ ·▀▀▀ ·▀  ▀ ▀▀▀ .▀  ▀  ${chalk.green(" ▀▀▀• ▀▀▀▀  ")}      
+							[Coded By Luci]
+																								
   `);
 }
 printAsciiLogo();
-process.title = `[Minecraft Usernames Checker] Created By Luci`;
-console.log(chalk.blue("[1] Mojang API Checker (Proxies) [No Date]".inverse));
-console.log(chalk.blue("[2] NameMC Checker (Proxies)".inverse));
+process.title = `[313][Minecraft Usernames Checker] Created By Luci`;
+console.log(chalk.inverse("[1] Mojang API Checker (Proxies) [No Date]"));
+console.log(chalk.inverse("[2] NameMC Checker (Proxies)"));
 prompt.start();	
 	console.log(""); 
 	prompt.get(['options'], function(err, result) {
@@ -136,13 +156,57 @@ prompt.start();
 	var options = result.options;
 		switch(options) {
 		case "1":
-			console.log(`[Minecraft Username Checker]: Started!`.inverse);
-			console.log(`[Checking %s Usernames with %s Proxies!]`.inverse, usernames.length, proxies.length);
-			for (var i in usernames) check(usernames[i]);
+		console.log(chalk.inverse("[INFO] Press Corrosponding Number to Select Proxy Type! ")); 
+			console.log(`[1] https
+[2] socks4
+[3] socks5`); 
+			prompt.get(['type'], function(err, result) {
+			console.log('');
+			var type = result.type;
+			switch(type) {
+				case "1": 
+					var type = "http";
+					break
+				case "2":
+					var type = "socks4";
+					break
+				case "3":
+					var type = "socks5";
+					break
+				default:
+					var type = "http";
+					break
+			}
+			console.log(chalk.inverse(`[Minecraft Username Checker]: Started!`));
+			console.log(chalk.inverse(`[Checking ${usernames.length} Usernames with ${proxies.length} Proxies!]`));
+			for (var i in usernames) check(usernames[i],type);
+			})
 			break;
 			
 		case "2":
-			for (var i in usernames) Availability(usernames[i]);
+		console.log(chalk.inverse("[INFO] Press Corrosponding Number to Select Proxy Type! ")); 
+			console.log(`[1] https
+[2] socks4
+[3] socks5`); 
+			prompt.get(['type'], function(err, result) {
+			console.log('');
+			var type = result.type;
+			switch(type) {
+				case "1": 
+					var type = "http";
+					break
+				case "2":
+					var type = "socks4";
+					break
+				case "3":
+					var type = "socks5";
+					break
+				default:
+					var type = "http";
+					break
+			}
+			for (var i in usernames) Availability(usernames[i],type);
+			})
 			break;
 		}
 			
